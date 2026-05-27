@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理后台 · 投票系统</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .admin-grid { display: grid; gap: 16px; margin: 0 16px; }
+    .session-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .session-status { padding: 4px 12px; border-radius: 20px; font-size: 14px; font-weight: 600; }
+    .session-status.active { background: #ffebee; color: #c62828; }
+    .session-status.inactive { background: #f5f5f5; color: #757575; }
+    .session-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .btn { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .btn-start { background: #c62828; color: #fff; }
+    .btn-start:hover { background: #b71c1c; }
+    .btn-stop { background: #e53935; color: #fff; }
+    .btn-stop:hover { background: #c62828; }
+    .btn-reset { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+    .duration-input { width: 60px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; text-align: center; }
+    .qr-section { padding: 16px 0; text-align: center; margin: 0 16px; }
+    .qr-grid { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .qr-item { text-align: center; background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); min-width: 140px; }
+    .qr-item img { width: 120px; height: 120px; }
+    .qr-item .url { font-size: 11px; color: #999; word-break: break-all; max-width: 140px; margin-top: 4px; }
+    .section-title { font-size: 18px; font-weight: 700; color: #a00000; margin: 24px 16px 12px; padding-bottom: 8px; border-bottom: 2px solid #ffebee; }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14px; }
+    .results-table th, .results-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+    .results-table th { background: #fff5f5; font-weight: 600; color: #a00000; }
+    .num { text-align: center; }
+    .totals-bar { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 16px 12px; }
+    .total-chip { background: #fff5f5; color: #a00000; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; border: 1px solid #ffcdd2; }
+  </style>
+</head>
+<body>
+  <div class="brand-bar">
+    <div class="logo-wrap">
+      <img src="/static/sicau_logo.png" alt="川农">
+      <div class="brand-text">
+        <strong>四川农业大学</strong>
+        管理后台 · 投票系统
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="max-width:900px;">
+    <!-- QR Codes -->
+    <div class="qr-section">
+      <h3 style="color:#a00000; margin-bottom:12px;">📱 投票二维码（右键可保存）</h3>
+      <div class="qr-grid">
+        {% for ch in range(1, 6) %}
+          <div class="qr-item">
+            <strong style="color:#a00000;">第{{ ch }}篇章</strong>
+            <img src="data:image/png;base64,{{ qr_codes[ch] }}" alt="QR for chapter {{ ch }}">
+            <div class="url">{{ base_url }}/vote/{{ ch }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="section-title">🎮 投票控制面板</div>
+    <div class="admin-grid">
+      {% for s in sessions %}
+        <div class="session-card">
+          <div class="session-header">
+            <div><strong>{{ chapter_names[s.chapter] }}</strong></div>
+            <span class="session-status {{ 'active' if s.is_active else 'inactive' }}">
+              {{ '🟢 投票中' if s.is_active else '⚪ 未开启' }}
+            </span>
+          </div>
+          {% if s.is_active %}
+            <div class="session-actions">
+              <form method="POST" action="/admin/stop/{{ s.chapter }}">
+                <button class="btn btn-stop">🔴 结束投票</button>
+              </form>
+              <form method="POST" action="/admin/reset/{{ s.chapter }}" onsubmit="return confirm('确定重置该篇章所有投票数据？')">
+                <button class="btn btn-reset">🔄 重置</button>
+              </form>
+            </div>
+          {% else %}
+            <form method="POST" action="/admin/start/{{ s.chapter }}" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <label>限时 <input type="number" name="duration" class="duration-input" value="5" min="1" max="30"> 分钟</label>
+              <button class="btn btn-start">▶ 开启投票</button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div style="text-align:center; margin: 8px 16px;">
+      <form method="POST" action="/admin/reset-all" onsubmit="return confirm('确定清空全部投票数据？此操作不可撤销！')">
+        <button class="btn btn-reset" style="color:#c62828; border-color:#c62828;">🗑 清空全部投票数据</button>
+      </form>
+    </div>
+    <div class="section-title">📈 投票概况</div>
+    <div class="totals-bar">
+      {% for t in totals %}
+        <div class="total-chip">
+          <strong>第{{ t.chapter }}篇章:</strong> {{ t.total_votes or 0 }} 票
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Detail table -->
+    <div class="session-card" style="margin: 0 16px;">
+      <h3 style="color:#a00000; margin-bottom:12px;">📋 各节目票数明细</h3>
+      <table class="results-table">
+        <tr><th>篇章</th><th>序号</th><th>节目</th><th>表演者</th><th>学院</th><th class="num">票数</th></tr>
+        {% for v in vote_counts %}
+          <tr>
+            <td>第{{ v.chapter }}篇</td>
+            <td class="num">{{ v.id }}</td>
+            <td><strong>{{ v.program_name }}</strong></td>
+            <td>{{ v.performer }}</td>
+            <td>{{ v.college }}</td>
+            <td class="num"><strong>{{ v.votes }}</strong></td>
+          </tr>
+        {% endfor %}
+      </table>
+    </div>
+
+    <div class="footer-bar">
+      <p><img src="/static/graduate_union.png" alt="研会" class="union-logo"> 四川农业大学 · 研究生院 · 研究生会</p>
+      <p style="margin-top:8px;"><a href="/admin/results" style="color:#c62828;">查看完整结果 →</a></p>
+    </div>
+  </div>
+</body>
+</html>

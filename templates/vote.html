@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{{ chapter_name }} · 投票</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="brand-bar">
+    <div class="logo-wrap">
+      <img src="/static/sicau_logo.png" alt="川农">
+      <div class="brand-text">
+        <strong>四川农业大学</strong>
+        2026届研究生毕业晚会
+      </div>
+    </div>
+    <img src="/static/sicau_120_emblem.png" alt="120周年" class="badge-120" onerror="this.style.display='none'">
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <div class="header-logos">
+        <img src="/static/competition_logo.png" alt="风采大赛" class="competition-logo">
+      </div>
+      <h1>{{ chapter_name }}</h1>
+      <p class="subtitle">节目人气投票</p>
+      <p style="margin-top:8px;"><a href="/" style="color:#c62828; font-size:13px;">← 返回首页</a></p>
+    </div>
+
+    <!-- Timer -->
+    <div id="timer-bar" class="timer-bar">
+      <div id="timer-display">--:--</div>
+      <div id="timer-label">等待开始...</div>
+    </div>
+
+    <!-- Vote form -->
+    <div id="vote-form-area" class="form-section" style="display:none;">
+      <div class="info-card">
+        <p>🎯 选择你喜欢的节目（可多选），每个篇章限投一次</p>
+      </div>
+      <p class="program-label">👇 选择你喜欢的节目</p>
+      <div class="program-list" id="program-list">
+        {% for p in programs %}
+          <label class="program-option">
+            <input type="checkbox" name="program_ids" value="{{ p.id }}">
+            <div class="program-info">
+              <span class="program-order">{{ p.order_num }}.</span>
+              <div>
+                <div class="program-name">{{ p.program_name }}</div>
+                <div class="program-detail">{{ p.performer }} · {{ p.college }}</div>
+                <div class="program-category">{{ p.category }}</div>
+              </div>
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+      <button id="submit-btn" class="submit-btn" onclick="submitVote()">提交投票</button>
+    </div>
+
+    <!-- Not started -->
+    <div id="not-started-area" style="display:none;">
+      <div class="message-card">
+        <div class="message-icon">⏳</div>
+        <h2>投票未开始</h2>
+        <p>当前篇章的投票尚未开启，请等待主持人通知</p>
+      </div>
+    </div>
+
+    <!-- Ended -->
+    <div id="ended-area" style="display:none;">
+      <div class="message-card">
+        <div class="message-icon">⏰</div>
+        <h2>投票已结束</h2>
+        <p>本篇章投票时间已截止，感谢参与！</p>
+        <p class="small">最终结果将在晚会尾声公布</p>
+      </div>
+    </div>
+
+    <!-- Success (voted area removed - no identity check) -->
+    <div id="success-area" style="display:none;">
+      <div class="message-card success">
+        <div class="message-icon">🎉</div>
+        <h2>投票成功！</h2>
+        <p>感谢你的参与！</p>
+        <p class="small">请继续观看接下来的精彩节目</p>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <p><img src="/static/graduate_union.png" alt="研会" class="union-logo"> 四川农业大学 · 研究生院 · 研究生会</p>
+    </div>
+  </div>
+
+  <script>
+    const chapter = {{ chapter }};
+    let remainingSeconds = 0;
+    let timerInterval = null;
+
+    const timerBar = document.getElementById('timer-bar');
+    const timerDisplay = document.getElementById('timer-display');
+    const timerLabel = document.getElementById('timer-label');
+    const voteFormArea = document.getElementById('vote-form-area');
+    const notStartedArea = document.getElementById('not-started-area');
+    const endedArea = document.getElementById('ended-area');
+    const successArea = document.getElementById('success-area');
+    const submitBtn = document.getElementById('submit-btn');
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function showOnly(area) {
+      [voteFormArea, notStartedArea, endedArea, successArea].forEach(el => { el.style.display = 'none'; });
+      if (area) area.style.display = 'block';
+    }
+
+    function updateTimer() {
+      if (!timerInterval) return;
+      if (remainingSeconds <= 0) {
+        timerDisplay.textContent = '00:00';
+        timerLabel.textContent = '投票已结束';
+        timerBar.className = 'timer-bar ended';
+        return;
+      }
+      timerDisplay.textContent = formatTime(remainingSeconds);
+      timerLabel.textContent = '剩余投票时间';
+      timerBar.className = remainingSeconds <= 30 ? 'timer-bar warning' : 'timer-bar active';
+    }
+
+    function fetchStatus() {
+      fetch('/api/status/' + chapter)
+        .then(r => r.json())
+        .then(function(status) {
+          if (status.is_active) {
+            remainingSeconds = status.remaining;
+            if (remainingSeconds <= 0) {
+              showOnly(endedArea);
+              timerBar.className = 'timer-bar ended';
+              timerDisplay.textContent = '00:00';
+              timerLabel.textContent = '投票已结束';
+              if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+              return;
+            }
+            showOnly(voteFormArea);
+            updateTimer();
+            if (!timerInterval) {
+              timerInterval = setInterval(function() {
+                remainingSeconds--;
+                if (remainingSeconds <= 0) {
+                  remainingSeconds = 0;
+                  showOnly(endedArea);
+                  timerBar.className = 'timer-bar ended';
+                  timerDisplay.textContent = '00:00';
+                  timerLabel.textContent = '投票已结束';
+                  clearInterval(timerInterval);
+                  timerInterval = null;
+                } else {
+                  updateTimer();
+                }
+              }, 1000);
+            }
+          } else {
+            if (status.error === '投票已结束') {
+              showOnly(endedArea);
+              timerBar.className = 'timer-bar ended';
+              timerDisplay.textContent = '00:00';
+              timerLabel.textContent = '投票已结束';
+            } else {
+              showOnly(notStartedArea);
+              timerBar.className = 'timer-bar';
+              timerDisplay.textContent = '--:--';
+              timerLabel.textContent = '等待开始...';
+            }
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+          }
+        });
+    }
+
+    function submitVote() {
+      const checkboxes = document.querySelectorAll('input[name="program_ids"]:checked');
+      const programIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+      if (programIds.length === 0) { alert('请至少选择一个节目'); return; }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交中...';
+
+      fetch('/vote/' + chapter, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ program_ids: programIds })
+      })
+      .then(r => r.json())
+      .then(function(data) {
+        if (data.success) {
+          showOnly(successArea);
+          if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        } else {
+          alert(data.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = '提交投票';
+        }
+      })
+      .catch(function() {
+        alert('网络错误，请重试');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '提交投票';
+      });
+    }
+
+    fetchStatus();
+    setInterval(fetchStatus, 3000);
+  </script>
+</body>
+</html>

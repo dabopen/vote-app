@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>投票结果 · 四川农业大学</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .result-card { background: #fff; border-radius: 12px; padding: 20px; margin: 0 16px 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .result-item { display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f5f5f5; gap: 10px; }
+    .result-item:last-child { border-bottom: none; }
+    .result-rank { font-size: 18px; font-weight: 700; color: #c62828; min-width: 32px; text-align: center; }
+    .result-info { flex: 1; min-width: 0; }
+    .result-name { font-size: 15px; font-weight: 600; }
+    .result-detail { font-size: 12px; color: #888; margin-top: 2px; }
+    .result-bar-bg { height: 18px; background: #ffebee; border-radius: 9px; overflow: hidden; min-width: 80px; flex: 2; }
+    .result-bar { height: 100%; background: linear-gradient(90deg, #c62828, #e53935); border-radius: 9px; transition: width 0.5s; min-width: 4px; }
+    .result-votes { font-size: 15px; font-weight: 700; color: #c62828; min-width: 36px; text-align: right; }
+    .chapter-title { font-size: 17px; font-weight: 700; color: #a00000; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #ffebee; }
+    .empty-text { color: #999; font-size: 14px; text-align: center; padding: 24px; }
+  </style>
+</head>
+<body>
+  <div class="brand-bar">
+    <div class="logo-wrap">
+      <img src="/static/sicau_logo.png" alt="川农">
+      <div class="brand-text">
+        <strong>四川农业大学</strong>
+        投票结果
+      </div>
+    </div>
+  </div>
+
+  <div class="container" style="max-width:800px;">
+    <div class="header">
+      <h1>🏆 节目人气投票结果</h1>
+      <p class="subtitle">四川农业大学2026届研究生毕业晚会</p>
+    </div>
+
+    {% for ch in range(1, 6) %}
+      {% if ch in chapters %}
+        {% set chapter = chapters[ch] %}
+        {% set max_votes = chapter['programs'][0]['votes'] if chapter['programs'] else 0 %}
+        <div class="result-card">
+          <div class="chapter-title">第{{ ch }}篇章 · {{ chapter['name'] }}</div>
+          {% if chapter['programs'] %}
+            {% for p in chapter['programs'] %}
+              <div class="result-item">
+                <div class="result-rank">{{ '👑' if loop.first else loop.index }}</div>
+                <div class="result-info">
+                  <div class="result-name">{{ p['program_name'] }}</div>
+                  <div class="result-detail">{{ p['performer'] }} · {{ p['college'] }}</div>
+                </div>
+                <div class="result-bar-bg">
+                  <div class="result-bar" style="width: {{ (p['votes'] / max_votes * 100)|round if max_votes > 0 else 0 }}%;"></div>
+                </div>
+                <div class="result-votes">{{ p['votes'] }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="empty-text">暂无投票数据</div>
+          {% endif %}
+        </div>
+      {% endif %}
+    {% endfor %}
+
+    <div class="footer-bar">
+      <p><img src="/static/graduate_union.png" alt="研会" class="union-logo"> 四川农业大学 · 研究生院 · 研究生会</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>研究生毕业晚会 · 人气投票</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="brand-bar">
+    <div class="logo-wrap">
+      <img src="/static/sicau_logo.png" alt="川农">
+      <div class="brand-text">
+        <strong>四川农业大学</strong>
+        2026届研究生毕业晚会
+      </div>
+    </div>
+    <img src="/static/sicau_120_emblem.png" alt="120周年" class="badge-120" onerror="this.style.display='none'">
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <div class="header-logos">
+        <img src="/static/competition_logo.png" alt="风采大赛" class="competition-logo">
+      </div>
+      <h1>百世川农，研续华章</h1>
+      <p class="subtitle">第三届研究生风采大赛 · 节目人气投票</p>
+    </div>
+
+    <div class="info-card">
+      <p>📋 本场晚会共 <strong>5个篇章</strong>，每个篇章结束后开放投票</p>
+      <p>⏱ 每轮投票限时 <strong>5分钟</strong></p>
+      <p>📱 每个设备每篇章投票1次</p>
+      <p>✅ 可多选（勾选你喜欢的节目）</p>
+    </div>
+
+    <div class="chapter-list">
+      {% for ch in range(1, 6) %}
+        <a href="/vote/{{ ch }}" class="chapter-card">
+          <div class="chapter-number">第{{ ch }}篇章</div>
+          <div class="chapter-name">{{ chapter_names[ch] }}</div>
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="mascot-deco">
+      <img src="/static/mascot.png" alt="吉祥物">
+    </div>
+
+    <div class="footer-bar">
+      <p><img src="/static/graduate_union.png" alt="研会" class="union-logo"> 四川农业大学 · 研究生院 · 研究生会</p>
+    </div>
+  </div>
+</body>
+</html>
