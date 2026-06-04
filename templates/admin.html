@@ -108,7 +108,7 @@
     <div class="session-card" style="margin: 0 16px;">
       <h3 style="color:#a00000; margin-bottom:12px;">📋 各节目票数明细</h3>
       <table class="results-table">
-        <tr><th>篇章</th><th>序号</th><th>节目</th><th>表演者</th><th>学院</th><th class="num">票数</th></tr>
+        <tr><th>篇章</th><th>序号</th><th>节目</th><th>表演者</th><th>学院</th><th>表演形式</th><th class="num">票数</th></tr>
         {% for v in vote_counts %}
           <tr>
             <td>第{{ v.chapter }}篇</td>
@@ -116,6 +116,7 @@
             <td><strong>{{ v.program_name }}</strong></td>
             <td>{{ v.performer }}</td>
             <td>{{ v.college }}</td>
+            <td>{{ v.category }}</td>
             <td class="num"><strong>{{ v.votes }}</strong></td>
           </tr>
         {% endfor %}

@@ -192,7 +192,7 @@ def admin_panel():
     conn = get_db()
     sessions = conn.execute("SELECT * FROM voting_sessions ORDER BY chapter").fetchall()
     vote_counts = conn.execute("""
-        SELECT p.chapter, p.id, p.program_name, p.performer, p.college, COUNT(v.id) as votes
+        SELECT p.chapter, p.id, p.program_name, p.performer, p.college, p.category, COUNT(v.id) as votes
         FROM programs p LEFT JOIN votes v ON p.id = v.program_id
         GROUP BY p.id ORDER BY p.order_num
     """).fetchall()
@@ -300,7 +300,7 @@ def admin_export_csv():
 
     si = StringIO()
     cw = csv.writer(si)
-    cw.writerow(['篇章', '序号', '节目名称', '表演者', '学院', '类型', '票数'])
+    cw.writerow(['篇章', '序号', '节目名称', '表演者', '学院', '表演形式', '票数'])
     for r in results:
         cw.writerow([f'第{r["chapter"]}篇章', r['order_num'], r['program_name'],
                      r['performer'], r['college'], r['category'], r['votes']])
