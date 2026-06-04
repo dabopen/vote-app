@@ -5,9 +5,11 @@ Flask + SQLite3
 
 import sqlite3
 import os
+import csv
 import time
+from io import StringIO
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, Response
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24).hex()
@@ -285,6 +287,31 @@ def admin_results():
         chapters[ch]['programs'].sort(key=lambda x: x['votes'], reverse=True)
 
     return render_template('results.html', chapters=chapters, chapter_names=CHAPTER_NAMES)
+
+@app.route('/admin/export-csv')
+def admin_export_csv():
+    conn = get_db()
+    results = conn.execute("""
+        SELECT p.chapter, p.order_num, p.program_name, p.performer, p.college, p.category,
+               COUNT(v.id) as votes
+        FROM programs p LEFT JOIN votes v ON p.id = v.program_id
+        GROUP BY p.id ORDER BY p.chapter, p.order_num
+    """).fetchall()
+    conn.close()
+
+    si = StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['篇章', '序号', '节目名称', '表演者', '学院', '类型', '票数'])
+    for r in results:
+        cw.writerow([f'第{r["chapter"]}篇章', r['order_num'], r['program_name'],
+                     r['performer'], r['college'], r['category'], r['votes']])
+
+    output = si.getvalue()
+    return Response(
+        output,
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=vote_results.csv'}
+    )
 
 if __name__ == '__main__':
     print("=" * 60)
